@@ -27,9 +27,11 @@ def generate_query_url(year, month):
 def fetch_openfda_data(ds, ti, **context):
     from airflow.operators.python import get_current_context
     context = get_current_context()
-    execution_date = context['dag_run'].execution_date
-    year = execution_date.year
-    month = execution_date.month
+    
+    # Use logical_date instead of execution_date
+    logical_date = context['dag_run'].logical_date
+    year = logical_date.year
+    month = logical_date.month
     
     query_url = generate_query_url(year, month)
     response = requests.get(query_url)
