@@ -7,7 +7,6 @@ from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
 import pandas as pd
 import requests
-import os
 
 # ====== CONFIG ======
 GCP_PROJECT  = "linen-walker-470814-e8"    # e.g., "my-gcp-project"
@@ -55,7 +54,6 @@ def fetch_openfda_data(ds, ti, **context):
 def save_to_bigquery(ds, ti, **context):
     from airflow.providers.google.cloud.hooks.bigquery import BigQueryHook
     from google.cloud import bigquery
-    import json
     
     # Retrieve the DataFrame from XCom
     data_dict = ti.xcom_pull(task_ids='fetch_openfda_data', key='openfda_data')
@@ -77,3 +75,58 @@ def save_to_bigquery(ds, ti, **context):
         
         # Configure job to append data and auto-detect schema
         job_config = bigquery.LoadJobConfig(
+            write_disposition="WRITE_APPEND",
+            autodetect=True,
+            source_format=bigquery.SourceFormat.PARQUET
+        )
+        
+        try:
+            # Load DataFrame to BigQuery
+            job = client.load_table_from_dataframe(
+                df, 
+                table_ref, 
+                job_config=job_config
+            )
+            
+            # Wait for the job to complete
+            job.result()
+            
+            print(f"Successfully loaded {len(df)} rows into {table_ref}")
+            
+        except Exception as e:
+            print(f"Error loading data to BigQuery: {str(e)}")
+            raise e
+    else:
+        print("No data to load into BigQuery")
+
+# Define the DAG
+default_args = {
+    'owner': 'airflow',
+    'depends_on_past': False,
+    'retries': 1,
+    'retry_delay': timedelta(minutes=5),
+}
+
+dag = DAG(
+    'fetch_openfda_data_monthly',
+    default_args=default_args,
+    description='Retrieve OpenFDA data monthly and load to BigQuery',
+    schedule='@monthly',
+    start_date=datetime(2020, 11, 1),
+    catchup=True,
+    max_active_tasks=1
+)
+
+fetch_data_task = PythonOperator(
+    task_id='fetch_openfda_data',
+    python_callable=fetch_openfda_data,
+    dag=dag,
+)
+
+save_data_task = PythonOperator(
+    task_id='save_to_bigquery',
+    python_callable=save_to_bigquery,
+    dag=dag,
+)
+
+fetch_data_task >> save_data_task
