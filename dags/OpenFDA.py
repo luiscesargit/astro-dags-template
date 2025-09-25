@@ -116,7 +116,7 @@ dag = DAG(
     schedule='@monthly',
     start_date=datetime(2020, 11, 1),
     catchup=True,
-    max_active_tasks=1
+    max_active_tasks=1,
 )
 
 fetch_data_task = PythonOperator(
@@ -132,3 +132,4 @@ save_data_task = PythonOperator(
 )
 
 fetch_data_task >> save_data_task
+
