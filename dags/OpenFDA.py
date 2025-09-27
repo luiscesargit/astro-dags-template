@@ -8,10 +8,12 @@ from datetime import datetime, timedelta
 import pandas as pd
 import requests
 
+https://api.fda.gov/animalandveterinary/event.json?search=primary_reporter:"Owner"&count=original_receive_date
+
 # ====== CONFIG ======
 GCP_PROJECT  = "linen-walker-470814-e8"    # e.g., "my-gcp-project"
 BQ_DATASET   = "crypto"                    # e.g., "crypto"
-BQ_TABLE     = "fda_history_hourly"        # e.g., "bitcoin_history_hourly"
+BQ_TABLE     = "fda_history_animal"        # e.g., "bitcoin_history_hourly"
 BQ_LOCATION  = "US"                        # dataset location: "US" or "EU"
 GCP_CONN_ID  = "google_cloud_default"      # Airflow connection with a SA that can write to BQ
 # ====================
@@ -20,7 +22,7 @@ GCP_CONN_ID  = "google_cloud_default"      # Airflow connection with a SA that c
 def generate_query_url(year, month):
     start_date = f"{year}{month:02d}01"
     end_date = f"{year}{month:02d}{(datetime(year, month, 1) + timedelta(days=31)).replace(day=1) - timedelta(days=1):%d}"
-    query = f"https://api.fda.gov/drug/event.json?search=patient.drug.medicinalproduct:%22sildenafil+citrate%22+AND+receivedate:[{start_date}+TO+{end_date}]&count=receivedate"
+    query = f"https://api.fda.gov/animalandveterinary/event.json?search=primary_reporter:"Owner"&count=original_receive_date:[{start_date}+TO+{end_date}]&count=receivedate"
     return query
 
 # Function to fetch data from the API and save it to XCom
@@ -132,4 +134,5 @@ save_data_task = PythonOperator(
 )
 
 fetch_data_task >> save_data_task
+
 
