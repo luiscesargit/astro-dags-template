@@ -22,7 +22,7 @@ GCP_CONN_ID  = "google_cloud_default"      # Airflow connection with a SA that c
 def generate_query_url(year, month):
     start_date = f"{year}{month:02d}01"
     end_date = f"{year}{month:02d}{(datetime(year, month, 1) + timedelta(days=31)).replace(day=1) - timedelta(days=1):%d}"
-    query = f"https://api.fda.gov/animalandveterinary/event.json?search=primary_reporter:"Owner"&count=original_receive_date:[{start_date}+TO+{end_date}]&count=receivedate"
+    query = f"https://api.fda.gov/animalandveterinary/event.json?search=primary_reporter:%22Owner%22+AND+count=original_receive_date:[{start_date}+TO+{end_date}]&count=receivedate"
     return query
 
 # Function to fetch data from the API and save it to XCom
@@ -134,5 +134,6 @@ save_data_task = PythonOperator(
 )
 
 fetch_data_task >> save_data_task
+
 
 
